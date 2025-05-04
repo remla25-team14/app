@@ -11,7 +11,7 @@ function App() {
   useEffect(() => {
     async function fetchVersions() {
       try {
-        const response = await fetch('http://localhost:5001/version');
+        const response = await fetch('/api/version');
         const data = await response.json();
         
         setVersions({
@@ -43,7 +43,7 @@ function App() {
     setSentiment(null);
     
     try {
-      const response = await fetch('http://localhost:5001/analyze', {
+      const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ function App() {
     if (!sentiment || !sentiment.review_id) return;
     
     try {
-      await fetch('http://localhost:5001/feedback', {
+      await fetch('/api/feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

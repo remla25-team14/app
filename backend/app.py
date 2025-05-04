@@ -1,31 +1,41 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 import random
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app) 
 
-# placeholder for now, we should implement this later
+# placeholderes we need to edit later
 MODEL_SERVICE_URL = os.environ.get('MODEL_SERVICE_URL', 'http://localhost:5000')
 
-# placeholder for now, we should implement this later
-APP_VERSION = "0.1.0-placeholder"
+# placeholderes we need to edit later
+APP_VERSION = os.environ.get('APP_VERSION', '0.1.0-placeholder')
+MODEL_VERSION = os.environ.get('MODEL_VERSION', '0.1.0-placeholder')
 
-# this is for the versioning
-@app.route('/version', methods=['GET'])
+# root that loads the react app frontend
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
+
+# placeholderes we need to edit later
+@app.route('/api/version', methods=['GET'])
 def version():
     return jsonify({
         "app": {
             "app_version": APP_VERSION
         },
         "model_service": {
-            "model_version": "0.1.0-placeholder"
+            "model_version": MODEL_VERSION
         }
     })
     
-# this is for tje sentiment analysis later on
-@app.route('/analyze', methods=['POST'])
+# this is for the sentiment analysis later on, we need to edit this later
+@app.route('/api/analyze', methods=['POST'])
 def analyze_sentiment():
     data = request.json
     
@@ -34,7 +44,7 @@ def analyze_sentiment():
     
     review_text = data['review']
     
-    # placeholder for now
+    # placeholderes we need to edit later
     is_positive = random.choice([True, False])
     confidence = random.uniform(0.6, 0.95)
     
@@ -45,8 +55,8 @@ def analyze_sentiment():
         "confidence": confidence
     })
 
-#feedback based on the sentiment analysis
-@app.route('/feedback', methods=['POST'])
+# placeholderes we need to edit later
+@app.route('/api/feedback', methods=['POST'])
 def submit_feedback():
     data = request.json
     
@@ -57,6 +67,7 @@ def submit_feedback():
         "status": "success",
         "message": "Feedback received"
     })
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
