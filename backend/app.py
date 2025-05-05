@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+from libversion import get_version
 import os
 import requests
 
@@ -10,7 +11,8 @@ CORS(app)
 MODEL_SERVICE_URL = os.environ.get('MODEL_SERVICE_URL', 'http://localhost:5000')
 
 # TODO: Replace this with dependency on lib-version package
-APP_VERSION = os.environ.get('APP_VERSION', 'development')
+#APP_VERSION = os.environ.get('APP_VERSION', 'development')
+APP_VERSION = get_version()
 MODEL_VERSION = None
 
 @app.route('/', defaults={'path': ''})
