@@ -3,6 +3,7 @@ from flask_cors import CORS
 import os
 import requests
 
+# TODO: Replace this with dependency on lib-version package
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app) 
 
@@ -81,7 +82,6 @@ def submit_feedback():
         return jsonify({"error": "Missing review_id or correct_sentiment"}), 400
         
     # Here we would ideally send the feedback to the model service, or do something with it
-    # For now, we just acknowledge receipt
     return jsonify({
         "status": "success",
         "message": "Feedback received"
