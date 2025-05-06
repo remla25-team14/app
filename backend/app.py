@@ -3,13 +3,11 @@ from flask_cors import CORS
 import os
 import requests
 
-# TODO: Replace this with dependency on lib-version package
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app) 
 
 MODEL_SERVICE_URL = os.environ.get('MODEL_SERVICE_URL', 'http://localhost:5000')
 
-# TODO: Replace this with dependency on lib-version package
 APP_VERSION = os.environ.get('APP_VERSION', 'development')
 MODEL_VERSION = None
 
