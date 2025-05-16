@@ -11,7 +11,7 @@ app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
 # Initialize with your app and explicitly set the metrics path
-metrics = PrometheusMetrics(app, path='/metrics')
+metrics = PrometheusMetrics(app, path=None)
 metrics.info('app_info', 'Application info', version=get_version())
 
 # gauge for tracking sentiment ratio (positive vs negative reviews)
@@ -26,7 +26,6 @@ sentiment_predictions = Counter('sentiment_predictions_total', 'Number of sentim
 model_response_time = Histogram('model_response_time_seconds', 'Model service response time in seconds', 
                                buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0])
 
-# Add an explicit metrics endpoint that returns all metrics
 @app.route('/metrics')
 def metrics_endpoint():
     return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
@@ -74,10 +73,10 @@ def analyze_sentiment():
     if not data or 'review' not in data:
         return jsonify({"error": "Missing review text"}), 400
     
+    # Track model service response time
+    start_time = time.time()
+    
     try:
-        # Track model service response time
-        start_time = time.time()
-        
         # Forward the request to the model service
         response = requests.post(
             f"{MODEL_SERVICE_URL}/analyze",
@@ -117,6 +116,9 @@ def analyze_sentiment():
         else:
             return jsonify({"error": f"Model service error: {response.status_code}"}), 500
     except requests.RequestException as e:
+        # Record response time for failed requests too
+        response_time = time.time() - start_time
+        model_response_time.observe(response_time)
         return jsonify({"error": f"Failed to connect to model service: {str(e)}"}), 503
 
 # Save user feedback for model improvement

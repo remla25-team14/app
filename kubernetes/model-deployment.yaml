@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentiment-model
+  labels:
+    app: sentiment-model
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sentiment-model
+  template:
+    metadata:
+      labels:
+        app: sentiment-model
+    spec:
+      containers:
+      - name: sentiment-model
+        image: ghcr.io/remla25-team14/model-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentiment-model
+  labels:
+    app: sentiment-model-serv
+spec:
+  selector:
+    app: sentiment-model
+  ports:
+  - port: 5000
+    targetPort: 5000
+    protocol: TCP 
