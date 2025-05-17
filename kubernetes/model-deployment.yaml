@@ -18,6 +18,12 @@ spec:
       - name: sentiment-model
         image: ghcr.io/remla25-team14/model-service:latest
         imagePullPolicy: IfNotPresent
+        env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: GITHUB_TOKEN
         ports:
         - containerPort: 5000
 ---
@@ -33,4 +39,4 @@ spec:
   ports:
   - port: 5000
     targetPort: 5000
-    protocol: TCP 
+    protocol: TCP
