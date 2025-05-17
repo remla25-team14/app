@@ -24,6 +24,8 @@ spec:
             secretKeyRef:
               name: github-token
               key: GITHUB_TOKEN
+        - name: ARTIFACT_ID
+          value: "3143858901"  
         ports:
         - containerPort: 5000
 ---
