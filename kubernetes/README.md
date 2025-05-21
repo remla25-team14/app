@@ -73,6 +73,46 @@ minikube service myprom-kube-prometheus-sta-prometheus --url
 
 Copy the URL and open it in your browser to access the Prometheus dashboard.
 
+## Accessing Grafana Dashboard
+
+1. First, get the Grafana admin password:
+```bash
+kubectl get secret myprom-grafana -o jsonpath="{.data.admin-password}" | base64 --decode; echo
+```
+
+2. Set up port forwarding to access Grafana:
+```bash
+kubectl port-forward service/myprom-grafana 3000:80
+```
+
+3. Extract the dashboard JSON:
+```bash
+kubectl get configmap grafana-dashboard-sentiment -o jsonpath="{.data['sentiment-dashboard\.json']}" > dashboard.json
+```
+
+4. Access Grafana:
+   - Open your browser and go to http://localhost:3000
+   - Login with:
+     * Username: `admin`
+     * Password: (use the password obtained in step 1)
+
+5. Import the Sentiment Analysis Dashboard:
+   - Click the "+" icon in the left sidebar
+   - Select "Import"
+   - Click "Upload JSON file"
+   - Select the `dashboard.json` file you created in step 3
+   - Select "Prometheus" as the data source
+   - Click "Import"
+
+The dashboard includes the following panels:
+- Application Version
+- Positive Sentiment Ratio (with thresholds at 0.3 and 0.7)
+- Sentiment Predictions Over Time
+- Sentiment Distribution
+- Model Response Time
+
+The dashboard is configured to refresh every 5 seconds and shows data from the last 15 minutes.
+
 ## Testing the Metrics
 
 1. Verify Prometheus is scraping your app
