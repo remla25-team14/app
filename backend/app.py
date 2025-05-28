@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from libversion import get_version
+from libversion import VersionUtil
 import os
 import requests
 from prometheus_flask_exporter import PrometheusMetrics
@@ -12,7 +12,7 @@ CORS(app)
 
 # Initialize with your app and explicitly set the metrics path
 metrics = PrometheusMetrics(app, path=None)
-metrics.info('app_info', 'Application info', version=get_version())
+metrics.info('app_info', 'Application info', version=VersionUtil.get_version())
 
 # gauge for tracking sentiment ratio (positive vs negative reviews)
 sentiment_ratio = Gauge('sentiment_ratio', 'Ratio of positive to total reviews')
@@ -32,8 +32,7 @@ def metrics_endpoint():
 
 MODEL_SERVICE_URL = os.environ.get('MODEL_SERVICE_URL', 'http://localhost:5000')
 
-APP_VERSION = get_version()
-MODEL_VERSION = None
+APP_VERSION = VersionUtil.get_version()
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')

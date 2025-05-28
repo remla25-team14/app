@@ -179,3 +179,4 @@ If Prometheus isn't connecting to your application:
 - The sentiment analysis feature requires the model service to be operating correctly.
 - Even if the model service has issues, you can still validate that Prometheus monitoring is working by checking other metrics.
 - For a complete test, the model service needs access to a valid model artifact.
+

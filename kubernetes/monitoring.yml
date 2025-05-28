@@ -8,7 +8,7 @@ spec:
   containers:
   - name: sentiment-app
     image: sentiment-app:latest
-    imagePullPolicy: Never
+    imagePullPolicy: Always
     ports:
     - containerPort: 5001
     env:

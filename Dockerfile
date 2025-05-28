@@ -20,15 +20,9 @@ RUN apt-get update && apt-get install -y git
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY VERSION VERSION
-
 COPY backend/ ./
 
 COPY --from=frontend-build /app/frontend/build ./static
-
-ARG APP_VERSION=development
-ENV APP_VERSION=${APP_VERSION}
-ENV MODEL_VERSION=${APP_VERSION}
 
 ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
