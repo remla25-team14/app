@@ -26,6 +26,12 @@ sentiment_predictions = Counter('sentiment_predictions_total', 'Number of sentim
 model_response_time = Histogram('model_response_time_seconds', 'Model service response time in seconds', 
                                buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0])
 
+# Metrics for feedback
+feedback_timing = Histogram('feedback_timing_seconds', 'Time taken to submit feedback after analysis',
+                          buckets=[1, 5, 10, 30, 60, 120])
+feedback_rate = Counter('feedback_submissions_total', 'Number of feedback submissions')
+feedback_accuracy = Counter('feedback_accuracy_total', 'Number of correct/incorrect model predictions', ['accuracy'])
+
 @app.route('/metrics')
 def metrics_endpoint():
     return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
@@ -128,8 +134,15 @@ def submit_feedback():
     
     if not data or 'review_id' not in data or 'correct_sentiment' not in data:
         return jsonify({"error": "Missing review_id or correct_sentiment"}), 400
+    
+    # Track feedback metrics
+    feedback_rate.inc()
+    feedback_accuracy.labels(accuracy='correct' if data['correct_sentiment'] else 'incorrect').inc()
+    
+    # Track timing if provided
+    if 'time_to_feedback' in data:
+        feedback_timing.observe(data['time_to_feedback'] / 1000)  # Convert ms to seconds
         
-    # Here we would ideally send the feedback to the model service, or do something with it
     return jsonify({
         "status": "success",
         "message": "Feedback received"

@@ -7,6 +7,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [versions, setVersions] = useState({ app: null, model: null });
+  const [feedbackTiming, setFeedbackTiming] = useState(null);
   
   useEffect(() => {
     async function fetchVersions() {
@@ -69,6 +70,8 @@ function App() {
     if (!sentiment || !sentiment.review_id) return;
     
     try {
+      const timeTaken = feedbackTiming ? (Date.now() - feedbackTiming) : 0;
+      
       await fetch('/api/feedback', {
         method: 'POST',
         headers: {
@@ -76,7 +79,8 @@ function App() {
         },
         body: JSON.stringify({
           review_id: sentiment.review_id,
-          correct_sentiment: isCorrect ? sentiment.sentiment : !sentiment.sentiment
+          correct_sentiment: isCorrect ? sentiment.sentiment : !sentiment.sentiment,
+          time_to_feedback: timeTaken
         }),
       });
       
@@ -119,18 +123,20 @@ function App() {
         {sentiment && (
           <div className="result">
             <h2>Analysis Result</h2>
-            <div className="sentiment">
-              <p>{sentiment.sentiment ? '😊 Positive' : '😞 Negative'}</p>
-              {sentiment.confidence && (
-                <p>Confidence: {(sentiment.confidence * 100).toFixed(0)}%</p>
-              )}
-            </div>
-            
-            <div className="feedback">
-              <p>Was this analysis correct?</p>
-              <div>
-                <button onClick={() => submitFeedback(true)}>Yes</button>
-                <button onClick={() => submitFeedback(false)}>No</button>
+            <div className="sentiment-with-feedback">
+              <div className="sentiment">
+                <p>{sentiment.sentiment ? '😊 Positive' : '😞 Negative'}</p>
+                {sentiment.confidence && (
+                  <p>Confidence: {(sentiment.confidence * 100).toFixed(0)}%</p>
+                )}
+              </div>
+              
+              <div className="feedback-inline">
+                <p>Correct?</p>
+                <div className="feedback-buttons">
+                  <button onClick={() => submitFeedback(true)}>✓ Yes</button>
+                  <button onClick={() => submitFeedback(false)}>✗ No</button>
+                </div>
               </div>
             </div>
           </div>

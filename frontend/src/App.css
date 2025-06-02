@@ -48,9 +48,58 @@ button {
   border-radius: 5px;
 }
 
+.sentiment-with-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
 .sentiment {
   font-size: 1.2rem;
-  margin-bottom: 15px;
+  margin: 0;
+  padding-right: 20px;
+}
+
+.feedback-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.feedback-inline p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.feedback-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.feedback-buttons button {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.feedback-buttons button:hover {
+  background-color: #f0f0f0;
+}
+
+.feedback-buttons button:first-child {
+  color: #28a745;
+}
+
+.feedback-buttons button:last-child {
+  color: #dc3545;
 }
 
 .feedback {
