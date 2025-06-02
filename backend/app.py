@@ -26,6 +26,15 @@ sentiment_predictions = Counter('sentiment_predictions_total', 'Number of sentim
 model_response_time = Histogram('model_response_time_seconds', 'Model service response time in seconds', 
                                buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0])
 
+# New metrics for enhanced feedback
+feedback_submission_counter = Counter('feedback_submissions_total', 'Number of feedback submissions')
+feedback_ratio = Gauge('feedback_submission_ratio', 'Ratio of feedback submissions to total reviews')
+feedback_rating_sum = Counter('feedback_rating_sum', 'Sum of all feedback ratings')
+feedback_rating_count = Counter('feedback_rating_count', 'Count of feedback ratings')
+feedback_interaction_time = Histogram('feedback_interaction_seconds', 'Time spent on feedback form',
+                                    buckets=[1, 5, 10, 30, 60, 120])
+text_feedback_counter = Counter('text_feedback_total', 'Number of text feedback submissions')
+
 @app.route('/metrics')
 def metrics_endpoint():
     return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
@@ -127,9 +136,29 @@ def submit_feedback():
     data = request.json
     
     if not data or 'review_id' not in data or 'correct_sentiment' not in data:
-        return jsonify({"error": "Missing review_id or correct_sentiment"}), 400
-        
-    # Here we would ideally send the feedback to the model service, or do something with it
+        return jsonify({"error": "Missing required feedback data"}), 400
+    
+    # Update feedback metrics
+    feedback_submission_counter.inc()
+    
+    # Update feedback ratio
+    global total_reviews
+    if total_reviews > 0:
+        feedback_ratio.set(feedback_submission_counter._value.get() / total_reviews)
+    
+    # Track star rating if provided
+    if 'rating' in data:
+        feedback_rating_sum.inc(data['rating'])
+        feedback_rating_count.inc()
+    
+    # Track interaction time
+    if 'interaction_time' in data:
+        feedback_interaction_time.observe(data['interaction_time'])
+    
+    # Track text feedback
+    if 'text_feedback' in data and data['text_feedback'].strip():
+        text_feedback_counter.inc()
+    
     return jsonify({
         "status": "success",
         "message": "Feedback received"

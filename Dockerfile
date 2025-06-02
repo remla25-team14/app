@@ -12,6 +12,10 @@ RUN npm run build
 
 FROM python:3.12-slim
 
+# Add version argument
+ARG VERSION=v1
+ENV APP_VERSION=${VERSION}
+
 WORKDIR /app
 
 COPY requirements.txt ./requirements.txt

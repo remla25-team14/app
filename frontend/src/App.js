@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import FeedbackForm from './components/FeedbackForm';
 
 function App() {
   const [review, setReview] = useState('');
@@ -65,7 +66,7 @@ function App() {
     }
   };
   
-  const submitFeedback = async (isCorrect) => {
+  const handleFeedback = async (feedbackData) => {
     if (!sentiment || !sentiment.review_id) return;
     
     try {
@@ -76,11 +77,12 @@ function App() {
         },
         body: JSON.stringify({
           review_id: sentiment.review_id,
-          correct_sentiment: isCorrect ? sentiment.sentiment : !sentiment.sentiment
+          correct_sentiment: feedbackData.correct,
+          rating: feedbackData.rating,
+          text_feedback: feedbackData.textFeedback,
+          interaction_time: feedbackData.interactionTime
         }),
       });
-      
-      alert('Thank you for your feedback!');
     } catch (err) {
       console.error('Failed to submit feedback:', err);
     }
@@ -117,23 +119,10 @@ function App() {
         </form>
         
         {sentiment && (
-          <div className="result">
-            <h2>Analysis Result</h2>
-            <div className="sentiment">
-              <p>{sentiment.sentiment ? '😊 Positive' : '😞 Negative'}</p>
-              {sentiment.confidence && (
-                <p>Confidence: {(sentiment.confidence * 100).toFixed(0)}%</p>
-              )}
-            </div>
-            
-            <div className="feedback">
-              <p>Was this analysis correct?</p>
-              <div>
-                <button onClick={() => submitFeedback(true)}>Yes</button>
-                <button onClick={() => submitFeedback(false)}>No</button>
-              </div>
-            </div>
-          </div>
+          <FeedbackForm 
+            sentiment={sentiment}
+            onSubmitFeedback={handleFeedback}
+          />
         )}
       </main>
     </div>
