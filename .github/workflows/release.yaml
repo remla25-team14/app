@@ -53,7 +53,7 @@ jobs:
     needs: [build-and-push]
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Required for pushing version update
+      contents: write
 
     steps:
       - name: Checkout main branch
