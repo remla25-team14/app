@@ -2,44 +2,44 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    tags: ['v*']
 
 jobs:
-  build-and-push-release:
+  build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       packages: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v2
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Generate Docker tags
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v4
         with:
           images: ghcr.io/${{ github.repository }}/app
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=sha
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -49,14 +49,35 @@ jobs:
           build-args: |
             APP_VERSION=${{ steps.meta.outputs.version }}
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+  update-version:
+    needs: [build-and-push]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for pushing version update
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v3
         with:
-          files: |
-            # Add any release assets here, for example:
-            # dist/*.zip
-          body: |
-            ## Release ${{ steps.meta.outputs.version }}
-            See [CHANGELOG.md](CHANGELOG.md) for details.
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate next version
+        id: version
+        run: |
+          CURRENT_VERSION=${GITHUB_REF#refs/tags/v}
+          NEXT_VERSION=$(echo $CURRENT_VERSION | awk -F. -v OFS=. '{$NF = $NF + 1; print}')
+          echo "next_version=$NEXT_VERSION-pre" >> $GITHUB_OUTPUT
+
+      - name: Update VERSION file
+        run: echo "${{ steps.version.outputs.next_version }}" > VERSION
+
+      - name: Commit version update
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add VERSION
+          git commit -m "Bump version to ${{ steps.version.outputs.next_version }}"
+
+      - name: Push changes
+        run: git push origin main
