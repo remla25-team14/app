@@ -47,10 +47,13 @@ def serve(path):
 @metrics.counter('api_calls_version', 'Number of calls to version endpoint')
 def version():
     model_version = 'unavailable'
+    service_version = 'unavailable'
     try:
         response = requests.get(f"{MODEL_SERVICE_URL}/version", timeout=5)
         if response.status_code == 200:
-            model_version = response.json().get('model_version', 'unknown')
+            data = response.json()
+            model_version = data.get('model_version', 'unknown')
+            service_version = data.get('service_version', 'unknown')
     except requests.RequestException:
         pass
     
@@ -59,6 +62,7 @@ def version():
             "app_version": APP_VERSION
         },
         "model_service": {
+            "service_version": service_version,
             "model_version": model_version
         }
     })

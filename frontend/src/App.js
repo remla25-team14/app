@@ -6,7 +6,7 @@ function App() {
   const [sentiment, setSentiment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [versions, setVersions] = useState({ app: null, model: null });
+  const [versions, setVersions] = useState({ app: null, model: null, service: null });
   
   useEffect(() => {
     async function fetchVersions() {
@@ -16,13 +16,15 @@ function App() {
         
         setVersions({
           app: data.app.app_version,
-          model: data.model_service.model_version
+          model: data.model_service.model_version,
+          service: data.model_service.service_version
         });
       } catch (err) {
         console.error('Failed to fetch versions:', err);
         setVersions({
           app: 'Error fetching',
-          model: 'Error fetching'
+          model: 'Error fetching',
+          service: 'Error fetching'
         });
       }
     }
@@ -92,7 +94,8 @@ function App() {
         <h1>Restaurant Review Sentiment Analysis</h1>
         <div className="version-info">
           <p>App Version: {versions.app || 'Loading...'}</p>
-          <p>Model Service Version: {versions.model || 'Loading...'}</p>
+          <p>Model Service Version: {versions.service || 'Loading...'}</p>
+          <p>Trained Model Version: {versions.model || 'Loading...'}</p>
         </div>
       </header>
       
