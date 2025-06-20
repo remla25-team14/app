@@ -1,14 +1,58 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import send_from_directory, request as flask_request
 from flask_cors import CORS
-from libversion import VersionUtil
+from flask_openapi3 import OpenAPI, Info, Tag
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
+from libversion import VersionUtil  
 import os
 import requests
 from prometheus_flask_exporter import PrometheusMetrics
 from prometheus_client import Counter, Gauge, Histogram, generate_latest, CONTENT_TYPE_LATEST
 import time
 
-app = Flask(__name__, static_folder='static', static_url_path='')
+# Temporary version for testing
+class VersionUtil:
+    @staticmethod
+    def get_version():
+        return "0.1.0-testing"
+
+# OpenAPI Info
+info = Info(title="Sentiment Analysis App API", version=VersionUtil.get_version())
+app = OpenAPI(__name__, info=info, static_folder='static', static_url_path='')
 CORS(app)
+
+# OpenAPI Tags
+version_tag = Tag(name="version", description="Version information operations")
+sentiment_tag = Tag(name="sentiment", description="Sentiment analysis operations")
+feedback_tag = Tag(name="feedback", description="User feedback operations")
+metrics_tag = Tag(name="metrics", description="Prometheus metrics")
+docs_tag = Tag(name="docs", description="API documentation")
+
+# Pydantic Models
+class VersionResponse(BaseModel):
+    app: Dict[str, str] = Field(..., description="Application version information")
+    model_service: Dict[str, str] = Field(..., description="Model service version information")
+
+class ReviewRequest(BaseModel):
+    review: str = Field(..., min_length=1, description="Restaurant review text to analyze")
+
+class AnalysisResponse(BaseModel):
+    review_id: Optional[str] = Field(None, description="Unique identifier for this analysis")
+    review: str = Field(..., description="Original review text")
+    sentiment: bool = Field(..., description="Predicted sentiment (true=positive, false=negative)")
+    confidence: Optional[float] = Field(None, description="Confidence score (0.0-1.0) of the prediction")
+    emoji: str = Field(..., description="Emoji representation of sentiment")
+
+class FeedbackRequest(BaseModel):
+    review_id: str = Field(..., description="ID of the analyzed review")
+    correct_sentiment: bool = Field(..., description="The correct sentiment (true=positive, false=negative)")
+
+class FeedbackResponse(BaseModel):
+    status: str = Field(..., description="Status of the feedback submission")
+    message: str = Field(..., description="Additional information about the feedback submission")
+
+class ErrorResponse(BaseModel):
+    error: str = Field(..., description="Error message")
 
 # Initialize with your app and explicitly set the metrics path
 metrics = PrometheusMetrics(app, path=None)
@@ -26,26 +70,45 @@ sentiment_predictions = Counter('sentiment_predictions_total', 'Number of sentim
 model_response_time = Histogram('model_response_time_seconds', 'Model service response time in seconds', 
                                buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0])
 
-@app.route('/metrics')
+@app.get('/metrics', tags=[metrics_tag])
 def metrics_endpoint():
+    """
+    Get Prometheus metrics.
+    
+    This endpoint returns Prometheus-formatted metrics for monitoring
+    and observability of the application.
+    """
     return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
 
 MODEL_SERVICE_URL = os.environ.get('MODEL_SERVICE_URL', 'http://localhost:5000')
 
 APP_VERSION = VersionUtil.get_version()
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve(path):
+@app.get('/', defaults={'path': ''}, tags=[docs_tag])
+@app.get('/<path:path>', tags=[docs_tag])
+def serve(path=''):
+    """
+    Serve static frontend files.
+    
+    This endpoint serves the React frontend application files.
+    If a specific file is requested and exists, it returns that file.
+    Otherwise, it returns the main index.html for SPA routing.
+    """
     if path and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     else:
         return send_from_directory(app.static_folder, 'index.html')
 
 # Get version info from both local app and model service
-@app.route('/api/version', methods=['GET'])
+@app.get('/api/version', tags=[version_tag], responses={"200": VersionResponse})
 @metrics.counter('api_calls_version', 'Number of calls to version endpoint')
 def version():
+    """
+    Get version information.
+    
+    This endpoint returns version information for both the app backend
+    and the connected model service.
+    """
     model_version = 'unavailable'
     try:
         response = requests.get(f"{MODEL_SERVICE_URL}/version", timeout=5)
@@ -54,6 +117,7 @@ def version():
     except requests.RequestException:
         pass
     
+    from flask import jsonify
     return jsonify({
         "app": {
             "app_version": APP_VERSION
@@ -64,12 +128,19 @@ def version():
     })
     
 # Connect to model service for sentiment analysis
-@app.route('/api/analyze', methods=['POST'])
+@app.post('/api/analyze', tags=[sentiment_tag], 
+          responses={"200": AnalysisResponse, "400": ErrorResponse, "503": ErrorResponse})
 @metrics.counter('api_calls_analyze', 'Number of calls to analyze endpoint')
-def analyze_sentiment():
-    data = request.json
+def analyze_sentiment(body: ReviewRequest):
+    """
+    Analyze sentiment of a restaurant review.
     
-    if not data or 'review' not in data:
+    This endpoint forwards review text to the model service for sentiment analysis
+    and returns the prediction along with an emoji representation and confidence score.
+    """
+    from flask import jsonify
+    
+    if not body.review:
         return jsonify({"error": "Missing review text"}), 400
     
     # Track model service response time
@@ -79,7 +150,7 @@ def analyze_sentiment():
         # Forward the request to the model service
         response = requests.post(
             f"{MODEL_SERVICE_URL}/analyze",
-            json={"review": data['review']},
+            json={"review": body.review},
             timeout=10
         )
         
@@ -121,19 +192,50 @@ def analyze_sentiment():
         return jsonify({"error": f"Failed to connect to model service: {str(e)}"}), 503
 
 # Save user feedback for model improvement
-@app.route('/api/feedback', methods=['POST'])
+@app.post('/api/feedback', tags=[feedback_tag],
+          responses={"200": FeedbackResponse, "400": ErrorResponse})
 @metrics.counter('api_calls_feedback', 'Number of calls to feedback endpoint')
-def submit_feedback():
-    data = request.json
+def submit_feedback(body: FeedbackRequest):
+    """
+    Submit user feedback on sentiment analysis results.
     
-    if not data or 'review_id' not in data or 'correct_sentiment' not in data:
-        return jsonify({"error": "Missing review_id or correct_sentiment"}), 400
+    This endpoint allows users to provide feedback on whether the sentiment
+    prediction was correct, which can be used for model improvement and monitoring.
+    """
+    from flask import jsonify
+    
+    if not body.review_id:
+        return jsonify({"error": "Missing review_id"}), 400
         
     # Here we would ideally send the feedback to the model service, or do something with it
     return jsonify({
         "status": "success",
         "message": "Feedback received"
     })
+
+
+# OpenAPI Documentation Endpoints
+@app.get('/openapi.json', tags=[docs_tag])
+def get_openapi_spec():
+    """
+    Get the OpenAPI specification for this API.
+    
+    This endpoint returns the OpenAPI JSON specification that describes all
+    available endpoints, request parameters, and response formats.
+    """
+    from flask import jsonify
+    return jsonify(app.api_doc)
+
+
+@app.get('/docs', tags=[docs_tag])
+def get_docs():
+    """
+    Redirect to API documentation.
+    
+    This endpoint redirects to the Swagger UI documentation interface.
+    """
+    from flask import redirect
+    return redirect('/swagger')
 
 
 if __name__ == '__main__':
