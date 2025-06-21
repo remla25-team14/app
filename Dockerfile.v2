@@ -1,0 +1,21 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt ./requirements.txt
+
+RUN apt-get update && apt-get install -y git
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy backend-v2 contents to the root of the container
+COPY backend-v2/app.py ./
+COPY backend-v2/static/ ./static/
+
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=production
+ENV MODEL_SERVICE_URL=http://model-service:5000
+
+EXPOSE 5001
+
+CMD ["python", "app.py"] 

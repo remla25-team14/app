@@ -1,0 +1,33 @@
+# Use the same base image as v1 for consistency
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the v2 backend
+COPY backend-v2/ ./backend/
+
+# Copy the frontend (same as v1)
+COPY frontend/ ./frontend/
+
+# Set environment variables
+ENV FLASK_APP=backend/app.py
+ENV FLASK_ENV=production
+ENV PORT=5001
+
+# Expose port
+EXPOSE 5001
+
+# Run the v2 application
+CMD ["python", "backend/app.py"] 
