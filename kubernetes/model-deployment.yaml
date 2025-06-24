@@ -24,8 +24,16 @@ spec:
             secretKeyRef:
               name: github-token
               key: GITHUB_TOKEN
-        - name: ARTIFACT_ID
-          value: "3143858901"  
+        - name: TRAINED_MODEL_VERSION
+          value: "latest"  # Use latest GitHub release
+        - name: MODEL_SERVICE_IMAGE_TAG
+          value: "latest"
+        - name: VECT_FILE_NAME
+          value: "c1_BoW_Sentiment_Model.pkl"
+        - name: MODEL_FILE_NAME
+          value: "c2_Classifier_v1.pkl"
+        - name: MODEL_CACHE_DIR
+          value: "/app/model_cache"
         ports:
         - containerPort: 5000
 ---
