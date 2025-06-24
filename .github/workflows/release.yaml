@@ -62,22 +62,46 @@ jobs:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Calculate next version
-        id: version
+      - name: Determine next prerelease version
+        id: next_prerelease
         run: |
-          CURRENT_VERSION=${GITHUB_REF#refs/tags/v}
-          NEXT_VERSION=$(echo $CURRENT_VERSION | awk -F. -v OFS=. '{$NF = $NF + 1; print}')
-          echo "next_version=$NEXT_VERSION-pre" >> $GITHUB_OUTPUT
+          version=${GITHUB_REF#refs/tags/v}
+          base_version=$(echo "$version" | awk -F. '{printf "%d.%d.%d", $1, $2, $3+1}')
+          
+          latest_prerelease_tag=$(git tag --list "v${base_version}-rc.*" | sort -V | tail -n 1)
+          
+          rc_number=1
+          if [[ -n "$latest_prerelease_tag" ]]; then
+            latest_rc_number=$(echo "$latest_prerelease_tag" | grep -oP 'rc\.\K\d+')
+            rc_number=$((latest_rc_number + 1))
+          fi
+          
+          # Construct the new prerelease version string (e.g., v0.1.5-rc.3)
+          next="v${base_version}-rc.${rc_number}"
+          echo "next_release=$next" >> $GITHUB_OUTPUT
 
-      - name: Update VERSION file
-        run: echo "${{ steps.version.outputs.next_version }}" > VERSION
-
-      - name: Commit version update
+      - name: Bump version in metadata
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+          # Write the new prerelease version to a VERSION file
+          echo "${{ steps.next_prerelease.outputs.next_release }}" > VERSION
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
           git add VERSION
-          git commit -m "Bump version to ${{ steps.version.outputs.next_version }}"
+          
+          git commit -m "chore: bump to prerelease ${{ steps.next_prerelease.outputs.next_release }}"
+          
+          git tag ${{ steps.next_prerelease.outputs.next_release }}
+          
+          git push origin HEAD:main --follow-tags
 
-      - name: Push changes
-        run: git push origin main
+      - name: Create prerelease GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.next_prerelease.outputs.next_release }}
+          name: Pre-release ${{ steps.next_prerelease.outputs.next_release }}
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
