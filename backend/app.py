@@ -54,9 +54,17 @@ class FeedbackResponse(BaseModel):
 class ErrorResponse(BaseModel):
     error: str = Field(..., description="Error message")
 
-# Initialize with your app and explicitly set the metrics path
+# Initialize metrics
 metrics = PrometheusMetrics(app, path=None)
 metrics.info('app_info', 'Application info', version=VersionUtil.get_version())
+
+# Button click metrics
+button_clicks = Counter('sentiment_button_clicks_total', 'Total number of analyze button clicks', ['version'])
+page_views = Counter('page_views_total', 'Total number of page views', ['version'])
+time_to_first_click = Histogram('time_to_first_click_seconds', 
+                               'Time from page load to first button click',
+                               ['version'],
+                               buckets=[1, 2, 5, 10, 30, 60, float("inf")])
 
 # gauge for tracking sentiment ratio (positive vs negative reviews)
 sentiment_ratio = Gauge('sentiment_ratio', 'Ratio of positive to total reviews')
@@ -217,6 +225,37 @@ def submit_feedback(body: FeedbackRequest):
         "message": "Feedback received"
     })
 
+# Add new endpoints for metrics collection
+@app.post('/api/metrics/buttonclick', tags=[metrics_tag])
+def track_button_click():
+    """Track when the analyze button is clicked"""
+    from flask import request, jsonify
+    
+    # Get version from request header set by Istio
+    version = flask_request.headers.get('x-version', 'v1')
+    
+    # Increment button clicks counter
+    button_clicks.labels(version=version).inc()
+    
+    # Record time to first click if provided
+    time_from_load = request.json.get('timeFromLoad', 0)
+    if time_from_load:
+        time_to_first_click.labels(version=version).observe(time_from_load / 1000.0)  # Convert ms to seconds
+    
+    return jsonify({"status": "success"})
+
+@app.post('/api/metrics/pageview', tags=[metrics_tag])
+def track_page_view():
+    """Track page views"""
+    from flask import jsonify
+    
+    # Get version from request header set by Istio
+    version = flask_request.headers.get('x-version', 'v1')
+    
+    # Increment page views counter
+    page_views.labels(version=version).inc()
+    
+    return jsonify({"status": "success"})
 
 # OpenAPI Documentation Endpoints
 @app.get('/openapi.json', tags=[docs_tag])

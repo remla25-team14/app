@@ -8,6 +8,11 @@ function App() {
   const [error, setError] = useState(null);
   const [versions, setVersions] = useState({ app: null, model: null, service: null });
   
+  // Track page view on component mount
+  useEffect(() => {
+    fetch('/api/metrics/pageview', { method: 'POST' });
+  }, []);
+
   useEffect(() => {
     async function fetchVersions() {
       try {
@@ -38,6 +43,22 @@ function App() {
     if (!review.trim()) {
       setError('Please enter a review');
       return;
+    }
+    
+    // Track button click with timestamp
+    const clickTime = Date.now();
+    try {
+      await fetch('/api/metrics/buttonclick', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          timeFromLoad: clickTime - performance.timing.navigationStart 
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to track button click:', err);
     }
     
     setLoading(true);
