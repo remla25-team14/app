@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
+// V2: Button moved above textarea for experimental purposes
 function App() {
   const [review, setReview] = useState('');
   const [sentiment, setSentiment] = useState(null);
@@ -101,6 +102,10 @@ function App() {
       
       <main>
         <form onSubmit={handleSubmit}>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Analyzing...' : 'Analyze Sentiment'}
+          </button>
+          
           <div>
             <label htmlFor="review">Enter your restaurant review:</label>
             <textarea
@@ -111,10 +116,6 @@ function App() {
               rows={4}
             />
           </div>
-          
-          <button type="submit" disabled={loading}>
-            {loading ? 'Analyzing...' : 'Analyze Sentiment'}
-          </button>
           
           {error && <div className="error">{error}</div>}
         </form>
