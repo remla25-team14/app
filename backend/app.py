@@ -10,12 +10,6 @@ from prometheus_flask_exporter import PrometheusMetrics
 from prometheus_client import Counter, Gauge, Histogram, generate_latest, CONTENT_TYPE_LATEST
 import time
 
-# Temporary version for testing
-class VersionUtil:
-    @staticmethod
-    def get_version():
-        return "0.1.0-testing"
-
 # OpenAPI Info
 info = Info(title="Sentiment Analysis App API", version=VersionUtil.get_version())
 app = OpenAPI(__name__, info=info, static_folder='static', static_url_path='')

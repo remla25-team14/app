@@ -62,6 +62,16 @@ jobs:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create GitHub Release (stable)
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Determine next prerelease version
         id: next_prerelease
         run: |
